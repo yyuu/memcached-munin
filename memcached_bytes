@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+
+require 'memcache'
+
+# default values
+options = {
+  'host'         => 'localhost',
+  'port'         => '11211',
+  'name'         => 'memcached',
+  'version'      => '1.4',
+  'graph_period' => 'second',
+}.merge(ENV)
+
+uri = "#{options['host']}:#{options['port']}"
+begin
+  stats = MemCache.new(uri).stats[uri]
+rescue => error
+  stats = {}
+end
+stats.default = 0
+version = stats['version'].to_f
+
+case ARGV[0]
+when 'autoconfig'
+  STDOUT.puts('yes')
+  exit(0)
+when 'config'
+  if 1.4 <= version
+    STDOUT.puts(<<-E)
+graph_title #{options['name']} throughput
+graph_args --base 1024
+graph_vlabel bytes written (-) / read (+) per #{options['graph_period']}
+graph_category Memcache
+written.label transfer rate
+written.type DERIVE
+written.min 0
+written.draw LINE2
+written.max 80000000
+written.graph no
+read.label transfer rate
+read.type DERIVE
+read.min 0
+read.max 80000000
+read.draw LINE2
+read.negative written
+    E
+  else
+    STDOUT.puts(<<-E)
+graph_title #{options['name']} throughput
+graph_args --base 1024
+graph_vlabel bytes written (-) / read (+) per #{options['graph_period']}
+graph_category Memcache
+written.label transfer rate
+written.type DERIVE
+written.min 0
+written.draw LINE2
+written.max 80000000
+written.graph no
+read.label transfer rate
+read.type DERIVE
+read.min 0
+read.max 80000000
+read.draw LINE2
+read.negative written
+    E
+  end
+  exit(0)
+end
+
+if 1.4 <= version
+  STDOUT.puts(<<-E)
+written.value #{stats['bytes_written']}
+read.value #{stats['bytes_read']}
+  E
+else
+  STDOUT.puts(<<-E)
+written.value #{stats['bytes_written']}
+read.value #{stats['bytes_read']}
+  E
+end
+
+# vim:set ft=ruby :

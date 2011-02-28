@@ -1,0 +1,178 @@
+#!/usr/bin/env ruby
+
+require 'memcache'
+
+# default values
+options = {
+  'host'         => 'localhost',
+  'port'         => '11211',
+  'name'         => 'memcached',
+  'version'      => '1.4',
+  'graph_period' => 'second',
+}.merge(ENV)
+
+uri = "#{options['host']}:#{options['port']}"
+begin
+  stats = MemCache.new(uri).stats[uri]
+rescue => error
+  stats = {}
+end
+stats.default = 0
+version = stats['version'].to_f
+
+case ARGV[0]
+when 'autoconfig'
+  STDOUT.puts('yes')
+  exit(0)
+when 'config'
+  if 1.4 <= version
+    STDOUT.puts(<<-E)
+graph_title #{options['name']} queries
+graph_category Memcache
+graph_vlabel queries / #{options['graph_period']}
+get_hits.label get_hits
+get_hits.type DERIVE
+get_hits.draw AREA
+get_hits.min 0
+get_hits.max 10000
+get_misses.label get_misses
+get_misses.type DERIVE
+get_misses.draw STACK
+get_misses.min 0
+get_misses.max 10000
+set.label set
+set.type DERIVE
+set.draw STACK
+set.min 0
+set.max 10000
+flush.label flush
+flush.type DERIVE
+flush.draw STACK
+flush.min 0
+flush.max 10000
+delete_hits.label delete_hits
+delete_hits.type DERIVE
+delete_hits.draw STACK
+delete_hits.min 0
+delete_hits.max 10000
+delete_misses.label delete_misses
+delete_misses.type DERIVE
+delete_misses.draw STACK
+delete_misses.min 0
+delete_misses.max 10000
+decr_hits.label decr_hits
+decr_hits.type DERIVE
+decr_hits.draw STACK
+decr_hits.min 0
+decr_hits.max 10000
+decr_misses.label decr_misses
+decr_misses.type DERIVE
+decr_misses.draw STACK
+decr_misses.min 0
+decr_misses.max 100000
+incr_hits.label incr_hits
+incr_hits.type DERIVE
+incr_hits.draw STACK
+incr_hits.min 0
+incr_hits.max 10000
+incr_misses.label incr_misses
+incr_misses.type DERIVE
+incr_misses.draw STACK
+incr_misses.min 0
+incr_misses.max 10000
+cas_hits.label cas_hits
+cas_hits.type DERIVE
+cas_hits.draw STACK
+cas_hits.min 0
+cas_hits.max 10000
+cas_misses.label cas_misses
+cas_misses.type DERIVE
+cas_misses.draw STACK
+cas_misses.min 0
+cas_misses.max 10000
+cas_badval.label cas_badval
+cas_badval.type DERIVE
+cas_badval.draw STACK
+cas_badval.min 0
+cas_badval.max 10000
+evictions.label evictions
+evictions.type DERIVE
+evictions.draw LINE2
+evictions.min 0
+evictions.max 10000
+    E
+  else
+    STDOUT.puts(<<-E)
+graph_title #{options['name']} queries
+graph_category Memcache
+graph_vlabel queries / #{options['graph_period']}
+get_hits.label get_hits
+get_hits.type DERIVE
+get_hits.draw AREA
+get_hits.min 0
+get_hits.max 10000
+get_misses.label get_misses
+get_misses.type DERIVE
+get_misses.draw STACK
+get_misses.min 0
+get_misses.max 10000
+set.label set
+set.type DERIVE
+set.draw STACK
+set.min 0
+set.max 10000
+flush.label flush
+flush.type DERIVE
+flush.draw STACK
+flush.min 0
+flush.max 10000
+delete_hits.label delete_hits
+delete_hits.type DERIVE
+delete_hits.draw STACK
+delete_hits.min 0
+delete_hits.max 10000
+delete_misses.label delete_misses
+delete_misses.type DERIVE
+delete_misses.draw STACK
+delete_misses.min 0
+delete_misses.max 10000
+evictions.label evictions
+evictions.type DERIVE
+evictions.draw LINE2
+evictions.min 0
+evictions.max 10000
+    E
+  end
+  exit(0)
+end
+
+if 1.4 <= version
+  STDOUT.puts(<<-E)
+get_hits.value #{stats['get_hits']}
+get_misses.value #{stats['get_misses']}
+set.value #{stats['cmd_set']}
+flush.value #{stats['cmd_flush']}
+delete_hits.value #{stats['delete_hits']}
+delete_misses.value #{stats['delete_misses']}
+decr_hits.value #{stats['decr_hits']}
+decr_misses.value #{stats['decr_misses']}
+incr_hits.value #{stats['incr_hits']}
+incr_misses.value #{stats['incr_misses']}
+cas_hits.value #{stats['cas_hits']}
+cas_misses.value #{stats['cas_misses']}
+cas_badval.value #{stats['cas_badval']}
+evictions.value #{stats['evictions']}
+  E
+else
+  STDOUT.puts(<<-E)
+get_hits.value #{stats['cmd_get_hits']}
+get_misses.value #{stats['cmd_get_misses']}
+set.value #{stats['cmd_set_hits'].to_i + stats['cmd_set_misses'].to_i}
+flush.value #{stats['cmd_flush']}
+delete_hits.value #{stats['cmd_delete_hits']}
+delete_misses.value #{stats['cmd_delete_misses']}
+evictions.value #{stats['evictions']}
+  E
+end
+
+# vim:set ft=ruby :

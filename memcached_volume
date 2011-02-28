@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+
+require 'memcache'
+
+# default values
+options = {
+  'host'         => 'localhost',
+  'port'         => '11211',
+  'name'         => 'memcached',
+  'version'      => '1.4',
+  'graph_period' => 'second',
+}.merge(ENV)
+
+uri = "#{options['host']}:#{options['port']}"
+begin
+  stats = MemCache.new(uri).stats[uri]
+rescue => error
+  stats = {}
+end
+stats.default = 0
+version = stats['version'].to_f
+
+case ARGV[0]
+when 'autoconfig'
+  STDOUT.puts('yes')
+  exit(0)
+when 'config'
+  if 1.4 <= version
+    STDOUT.puts(<<-E)
+graph_title #{options['name']} volume
+graph_args --base 1000 -r --lower-limit 0 --upper-limit #{stats['limit_maxbytes']}
+graph_category Memcache
+graph_vlabel bytes
+maxbytes.label max
+maxbytes.draw AREA
+maxbytes.colour ccff00
+bytes.label bytes
+bytes.draw LINE3
+bytes.colour 33cc00
+items.label items
+items.draw LINE2
+items.colour 0033ff
+    E
+  else
+    STDOUT.puts(<<-E)
+graph_title #{options['name']} volume
+graph_args --base 1000 -r --lower-limit 0 --upper-limit #{stats['limit_maxbytes']}
+graph_category Memcache
+graph_vlabel bytes
+maxbytes.label max
+maxbytes.draw AREA
+maxbytes.colour ccff00
+bytes.label bytes
+bytes.draw LINE3
+bytes.colour 33cc00
+items.label items
+items.draw LINE2
+items.colour 0033ff
+    E
+  end
+  exit(0)
+end
+
+if 1.4 <= version
+  STDOUT.puts(<<-E)
+maxbytes.value #{stats['limit_maxbytes']}
+bytes.value #{stats['bytes']}
+items.value #{stats['curr_items']}
+  E
+else
+  STDOUT.puts(<<-E)
+maxbytes.value #{stats['limit_maxbytes']}
+bytes.value #{stats['bytes']}
+items.value #{stats['curr_items']}
+  E
+end
+
+# vim:set ft=ruby :
